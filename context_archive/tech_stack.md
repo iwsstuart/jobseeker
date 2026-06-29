@@ -1,0 +1,1 @@
+I am agnostic of the preferred tech stack. My experience is in Python and SQL coding (in an analytics environment), but these may not be relevant to the ideal architecture for this project.
