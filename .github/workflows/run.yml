@@ -1,0 +1,41 @@
+name: Daily job pipeline
+
+on:
+  schedule:
+    - cron: "0 5 * * *"  # 6am CET (UTC+1); runs at 7am during CEST (summer)
+  workflow_dispatch:      # allow manual trigger
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore database
+        uses: actions/download-artifact@v4
+        with:
+          name: jobseeker-db
+          path: .
+        continue-on-error: true  # first run: no artifact yet, fall back to repo DB
+
+      - name: Run pipeline
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python run.py
+
+      - name: Save database
+        uses: actions/upload-artifact@v4
+        with:
+          name: jobseeker-db
+          path: jobseeker.db
+          retention-days: 90
