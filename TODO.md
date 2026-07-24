@@ -8,3 +8,6 @@
 
 ## Profile tuning (after more data)
 - [ ] Consider tightening profile to exclude customer-facing roles (Solutions Engineer, Technical Support Manager) that are surfacing as borderline matches.
+
+## Ideas
+- [ ] Workflow for adding jobs found on LinkedIn: only add if the role can also be found on the company's own jobs page (i.e. it's a real, current posting, not stale/reposted). If the company isn't tracked yet, add the new company first.
