@@ -21,11 +21,12 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Restore database
-        uses: actions/download-artifact@v4
+        uses: actions/cache/restore@v4
         with:
-          name: jobseeker-db
-          path: .
-        continue-on-error: true  # first run: no artifact yet, fall back to repo DB
+          path: jobseeker.db
+          key: jobseeker-db-${{ github.run_id }}
+          restore-keys: |
+            jobseeker-db-
 
       - name: Run pipeline
         env:
@@ -34,8 +35,7 @@ jobs:
         run: python run.py
 
       - name: Save database
-        uses: actions/upload-artifact@v4
+        uses: actions/cache/save@v4
         with:
-          name: jobseeker-db
           path: jobseeker.db
-          retention-days: 90
+          key: jobseeker-db-${{ github.run_id }}
