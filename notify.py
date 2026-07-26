@@ -27,7 +27,7 @@ def format_digest(jobs: list[dict]) -> str:
 def run_notify():
     conn = get_connection()
 
-    jobs = conn.execute("""
+    matches = conn.execute("""
         SELECT j.id, j.title, j.url, c.name AS company, mr.reasoning
         FROM match_results mr
         JOIN jobs j ON j.id = mr.job_id
@@ -36,24 +36,31 @@ def run_notify():
         ORDER BY c.name, j.title
     """).fetchall()
 
-    if not jobs:
-        print("No new matches to notify.")
-        return
+    if matches:
+        message = format_digest(matches)
+    else:
+        total_evaluated = conn.execute(
+            "SELECT COUNT(*) FROM match_results WHERE date(evaluated_at) = date('now')"
+        ).fetchone()[0]
+        if total_evaluated:
+            message = f"No matches today — {total_evaluated} new job{'s' if total_evaluated != 1 else ''} evaluated."
+        else:
+            message = "No new jobs evaluated today."
 
-    message = format_digest(jobs)
     print(message)
     print()
 
     send_slack_message(message)
 
-    ids = [job["id"] for job in jobs]
-    conn.execute(
-        f"UPDATE match_results SET notified_at = datetime('now') WHERE job_id IN ({','.join('?' * len(ids))})",
-        ids,
-    )
-    conn.commit()
+    if matches:
+        ids = [job["id"] for job in matches]
+        conn.execute(
+            f"UPDATE match_results SET notified_at = datetime('now') WHERE job_id IN ({','.join('?' * len(ids))})",
+            ids,
+        )
+        conn.commit()
     conn.close()
-    print(f"Notified: {len(jobs)} matches sent to Slack.")
+    print(f"Notified: {len(matches)} matches sent to Slack.")
 
 
 if __name__ == "__main__":
