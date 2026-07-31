@@ -22,6 +22,8 @@ def init_db():
             active          INTEGER NOT NULL DEFAULT 1
         );
 
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_name ON companies(name);
+
         CREATE TABLE IF NOT EXISTS jobs (
             id                 INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id         INTEGER NOT NULL REFERENCES companies(id),
