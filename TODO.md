@@ -5,6 +5,7 @@
 
 ## Ops
 - [ ] To inspect the DB after a GitHub Actions run: the DB now persists via `actions/cache` (key `jobseeker-db-<run_id>`), not an artifact, so `gh run download` no longer works. Use the `gh actions-cache` extension (`gh extension install actions/gh-actions-cache`) to list/download the cache instead.
+- [ ] Cache growth: each run saves a new cache entry keyed by `run_id` (never overwritten, so saves never collide with the immutable-key restriction). These accumulate indefinitely — not a problem yet given the DB's small size and GitHub's 10GB/repo cap with LRU eviction, but worth periodically pruning old `jobseeker-db-*` entries (e.g. via `gh actions-cache delete`) if it ever becomes an issue.
 
 ## Profile tuning (after more data)
 - [ ] Consider tightening profile to exclude customer-facing roles (Solutions Engineer, Technical Support Manager) that are surfacing as borderline matches.
