@@ -50,27 +50,48 @@ COMPANIES = [
         "ats_identifier": "headway",
         "active": True,
     },
-    # Second pass — inactive until fetchers are built
+    {
+        "name": "Crusoe",
+        "careers_url": "https://www.crusoe.ai/about/careers",
+        "ats": "ashby",
+        "ats_identifier": "Crusoe",
+        "active": True,
+    },
+    {
+        "name": "Aurora Solar",
+        "careers_url": "https://aurorasolar.com/careers/",
+        "ats": "ashby",
+        "ats_identifier": "aurorasolar",
+        "active": True,
+    },
+    {
+        "name": "Harvey",
+        "careers_url": "https://www.harvey.ai/careers",
+        "ats": "ashby",
+        "ats_identifier": "harvey",
+        "active": True,
+    },
+    # Rippling / Pinpoint (added once those fetchers landed)
     {
         "name": "Wherobots",
         "careers_url": "https://wherobots.com/careers/",
         "ats": "rippling",
-        "ats_identifier": None,
-        "active": False,
+        "ats_identifier": "wherobots",
+        "active": True,
     },
     {
         "name": "Inspiration Mobility",
         "careers_url": "https://inspirationmobility.com/about/careers",
         "ats": "rippling",
-        "ats_identifier": None,
-        "active": False,
+        "ats_identifier": "inspiration-mobility",
+        "active": True,
     },
     {
         "name": "Carto",
         "careers_url": "https://carto.com/careers/",
         "ats": "pinpoint",
-        "ats_identifier": None,
-        "active": False,
+        "ats_identifier": "carto",
+        "active": True,
     },
     {
         "name": "Electricity Maps",
@@ -93,9 +114,16 @@ def seed():
     init_db()
     conn = get_connection()
     for c in COMPANIES:
+        # `active` is deliberately excluded from the UPDATE SET — it's
+        # user-controlled via onboard.py's toggle flow, and a plain upsert
+        # would silently undo that on every run otherwise.
         conn.execute(
-            """INSERT OR IGNORE INTO companies (name, careers_url, ats, ats_identifier, active)
-               VALUES (?, ?, ?, ?, ?)""",
+            """INSERT INTO companies (name, careers_url, ats, ats_identifier, active)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(name) DO UPDATE SET
+                   careers_url = excluded.careers_url,
+                   ats = excluded.ats,
+                   ats_identifier = excluded.ats_identifier""",
             (c["name"], c["careers_url"], c["ats"], c["ats_identifier"], 1 if c["active"] else 0),
         )
     conn.commit()
