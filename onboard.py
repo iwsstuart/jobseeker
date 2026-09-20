@@ -4,6 +4,11 @@ from db import get_connection, init_db
 from fetch import FETCHERS
 
 VALID_ATS = list(FETCHERS.keys())
+CANCEL_WORDS = ("q", "quit", "cancel")
+
+
+class Cancelled(Exception):
+    pass
 
 
 def resolve(ats: str, ats_identifier: str) -> dict:
@@ -16,18 +21,27 @@ def resolve(ats: str, ats_identifier: str) -> dict:
     return {"status": "success", "jobs": jobs}
 
 
+def _check_cancel(value: str):
+    if value.strip().lower() in CANCEL_WORDS:
+        raise Cancelled()
+
+
 def _prompt(label: str) -> str:
-    value = input(f"{label}: ").strip()
+    value = input(f"{label} (or 'q' to cancel): ").strip()
+    _check_cancel(value)
     while not value:
-        value = input(f"{label} (required): ").strip()
+        value = input(f"{label} (required, or 'q' to cancel): ").strip()
+        _check_cancel(value)
     return value
 
 
 def _prompt_ats() -> str:
-    ats = input(f"ATS platform ({'/'.join(VALID_ATS)}): ").strip().lower()
+    ats = input(f"ATS platform ({'/'.join(VALID_ATS)}, or 'q' to cancel): ").strip().lower()
+    _check_cancel(ats)
     while ats not in VALID_ATS:
         print(f"  Unsupported ATS '{ats}'. Must be one of: {', '.join(VALID_ATS)}.")
-        ats = input(f"ATS platform ({'/'.join(VALID_ATS)}): ").strip().lower()
+        ats = input(f"ATS platform ({'/'.join(VALID_ATS)}, or 'q' to cancel): ").strip().lower()
+        _check_cancel(ats)
     return ats
 
 
@@ -123,7 +137,10 @@ def main():
         choice = input("Choice: ").strip()
 
         if choice == "1":
-            add_company(conn)
+            try:
+                add_company(conn)
+            except Cancelled:
+                print("  Cancelled — nothing written.")
         elif choice == "2":
             toggle_active(conn)
         elif choice == "3":
