@@ -1,11 +1,14 @@
 from datetime import datetime, timezone
 
 from db import get_connection, init_db
-from fetchers import greenhouse, ashby
+from fetchers import greenhouse, ashby, lever, rippling, pinpoint
 
 FETCHERS = {
     "greenhouse": greenhouse.fetch_jobs,
     "ashby": ashby.fetch_jobs,
+    "lever": lever.fetch_jobs,
+    "rippling": rippling.fetch_jobs,
+    "pinpoint": pinpoint.fetch_jobs,
 }
 
 
