@@ -55,7 +55,7 @@ def run_filter():
     for job in jobs:
         if should_filter(job["title"]):
             conn.execute(
-                "UPDATE jobs SET processing_status = 'filtered_out' WHERE id = ?",
+                "UPDATE jobs SET processing_status = 'filtered_out' WHERE id = %s",
                 (job["id"],),
             )
             filtered += 1

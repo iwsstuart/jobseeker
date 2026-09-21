@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg
 
 from db import get_connection, init_db
 from fetch import FETCHERS
@@ -70,12 +70,13 @@ def add_company(conn):
             try:
                 conn.execute(
                     """INSERT INTO companies (name, careers_url, ats, ats_identifier, active)
-                       VALUES (?, ?, ?, ?, 1)""",
+                       VALUES (%s, %s, %s, %s, TRUE)""",
                     (name, careers_url, ats, ats_identifier),
                 )
                 conn.commit()
                 print(f"  Added '{name}'.")
-            except sqlite3.IntegrityError:
+            except psycopg.errors.UniqueViolation:
+                conn.rollback()
                 print(f"  A company named '{name}' already exists — nothing written.")
             return
 
@@ -113,15 +114,15 @@ def toggle_active(conn):
         print("  Invalid selection.")
         return
 
-    new_active = 0 if company["active"] else 1
+    new_active = not company["active"]
     new_label = "active" if new_active else "inactive"
     if not _confirm(f"  Set '{company['name']}' to {new_label}?"):
         print("  Cancelled.")
         return
 
-    conn.execute("UPDATE companies SET active = ? WHERE id = ?", (new_active, company["id"]))
+    conn.execute("UPDATE companies SET active = %s WHERE id = %s", (new_active, company["id"]))
     conn.commit()
-    verb = "will be skipped by future fetches" if new_active == 0 else "will be included in future fetches"
+    verb = "will be included in future fetches" if new_active else "will be skipped by future fetches"
     print(f"  '{company['name']}' is now {new_label} — {verb}.")
 
 

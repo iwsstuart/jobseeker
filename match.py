@@ -1,4 +1,3 @@
-import json
 import os
 import anthropic
 from db import get_connection
@@ -41,9 +40,9 @@ Now evaluate the following job:
 **Title:** {job["title"]}
 **Company:** {job["company"]}
 **Experience level:** {job["experience_level"]}
-**Skills:** {", ".join(json.loads(job["skills"]))}
+**Skills:** {", ".join(job["skills"])}
 **Key requirements:**
-{chr(10).join(f"- {r}" for r in json.loads(job["key_requirements"]))}
+{chr(10).join(f"- {r}" for r in job["key_requirements"])}
 """
     response = client.messages.create(
         model=MODEL,
@@ -93,11 +92,11 @@ def run_matching():
 
             conn.execute(
                 """INSERT INTO match_results (job_id, is_match, reasoning, evaluated_at)
-                   VALUES (?, ?, ?, datetime('now'))""",
-                (job["id"], 1 if result["is_match"] else 0, result["reasoning"]),
+                   VALUES (%s, %s, %s, NOW()::text)""",
+                (job["id"], result["is_match"], result["reasoning"]),
             )
             conn.execute(
-                "UPDATE jobs SET processing_status = 'evaluated' WHERE id = ?",
+                "UPDATE jobs SET processing_status = 'evaluated' WHERE id = %s",
                 (job["id"],),
             )
             conn.commit()

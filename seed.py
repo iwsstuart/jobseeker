@@ -119,12 +119,12 @@ def seed():
         # would silently undo that on every run otherwise.
         conn.execute(
             """INSERT INTO companies (name, careers_url, ats, ats_identifier, active)
-               VALUES (?, ?, ?, ?, ?)
+               VALUES (%s, %s, %s, %s, %s)
                ON CONFLICT(name) DO UPDATE SET
                    careers_url = excluded.careers_url,
                    ats = excluded.ats,
                    ats_identifier = excluded.ats_identifier""",
-            (c["name"], c["careers_url"], c["ats"], c["ats_identifier"], 1 if c["active"] else 0),
+            (c["name"], c["careers_url"], c["ats"], c["ats_identifier"], c["active"]),
         )
     conn.commit()
     conn.close()

@@ -32,7 +32,7 @@ def run_notify():
         FROM match_results mr
         JOIN jobs j ON j.id = mr.job_id
         JOIN companies c ON c.id = j.company_id
-        WHERE mr.is_match = 1 AND mr.notified_at IS NULL
+        WHERE mr.is_match AND mr.notified_at IS NULL
         ORDER BY c.name, j.title
     """).fetchall()
 
@@ -40,8 +40,8 @@ def run_notify():
         message = format_digest(matches)
     else:
         total_evaluated = conn.execute(
-            "SELECT COUNT(*) FROM match_results WHERE date(evaluated_at) = date('now')"
-        ).fetchone()[0]
+            "SELECT COUNT(*) FROM match_results WHERE evaluated_at::timestamptz::date = CURRENT_DATE"
+        ).fetchone()["count"]
         if total_evaluated:
             message = f"No matches today — {total_evaluated} new job{'s' if total_evaluated != 1 else ''} evaluated."
         else:
@@ -55,7 +55,7 @@ def run_notify():
     if matches:
         ids = [job["id"] for job in matches]
         conn.execute(
-            f"UPDATE match_results SET notified_at = datetime('now') WHERE job_id IN ({','.join('?' * len(ids))})",
+            f"UPDATE match_results SET notified_at = NOW()::text WHERE job_id IN ({','.join(['%s'] * len(ids))})",
             ids,
         )
         conn.commit()

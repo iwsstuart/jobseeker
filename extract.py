@@ -1,8 +1,8 @@
-import json
 import os
 from html.parser import HTMLParser
 
 import anthropic
+from psycopg.types.json import Jsonb
 
 from db import get_connection
 
@@ -109,12 +109,12 @@ def run_extraction():
 
             conn.execute(
                 """INSERT INTO job_extractions (job_id, skills, experience_level, key_requirements, extracted_at)
-                   VALUES (?, ?, ?, ?, datetime('now'))""",
+                   VALUES (%s, %s, %s, %s, NOW()::text)""",
                 (
                     job["id"],
-                    json.dumps(result["skills"]),
+                    Jsonb(result["skills"]),
                     result["experience_level"],
-                    json.dumps(result["key_requirements"]),
+                    Jsonb(result["key_requirements"]),
                 ),
             )
             conn.commit()

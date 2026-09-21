@@ -20,22 +20,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Restore database
-        uses: actions/cache/restore@v4
-        with:
-          path: jobseeker.db
-          key: jobseeker-db-${{ github.run_id }}
-          restore-keys: |
-            jobseeker-db-
-
       - name: Run pipeline
         env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: python run.py
-
-      - name: Save database
-        uses: actions/cache/save@v4
-        with:
-          path: jobseeker.db
-          key: jobseeker-db-${{ github.run_id }}

@@ -37,13 +37,13 @@ def fetch_company(conn, company):
         ext_id = job["external_id"]
         seen_ids.add(ext_id)
         existing = conn.execute(
-            "SELECT id FROM jobs WHERE company_id = ? AND external_id = ?",
+            "SELECT id FROM jobs WHERE company_id = %s AND external_id = %s",
             (company["id"], ext_id),
         ).fetchone()
 
         if existing:
             conn.execute(
-                "UPDATE jobs SET last_seen_at = ?, status = 'open' WHERE id = ?",
+                "UPDATE jobs SET last_seen_at = %s, status = 'open' WHERE id = %s",
                 (now, existing["id"]),
             )
         else:
@@ -51,22 +51,22 @@ def fetch_company(conn, company):
                 """INSERT INTO jobs
                        (company_id, external_id, title, url, raw_description,
                         first_seen_at, last_seen_at, status, processing_status)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, 'open', 'new')""",
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, 'open', 'new')""",
                 (company["id"], ext_id, job["title"], job["url"], job["raw_description"], now, now),
             )
 
     # Jobs no longer in the feed → mark closed
     if seen_ids:
-        placeholders = ",".join("?" * len(seen_ids))
+        placeholders = ",".join(["%s"] * len(seen_ids))
         conn.execute(
             f"""UPDATE jobs SET status = 'closed'
-                WHERE company_id = ? AND status = 'open'
+                WHERE company_id = %s AND status = 'open'
                 AND external_id NOT IN ({placeholders})""",
             (company["id"], *seen_ids),
         )
     else:
         conn.execute(
-            "UPDATE jobs SET status = 'closed' WHERE company_id = ? AND status = 'open'",
+            "UPDATE jobs SET status = 'closed' WHERE company_id = %s AND status = 'open'",
             (company["id"],),
         )
 
@@ -77,7 +77,7 @@ def fetch_company(conn, company):
 def main():
     init_db()
     conn = get_connection()
-    companies = conn.execute("SELECT * FROM companies WHERE active = 1").fetchall()
+    companies = conn.execute("SELECT * FROM companies WHERE active").fetchall()
 
     if not companies:
         print("No active companies found. Run seed.py first.")

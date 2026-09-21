@@ -1,31 +1,34 @@
-import sqlite3
 import os
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "jobseeker.db")
+import psycopg
+from psycopg.rows import dict_row
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        raise SystemExit("DATABASE_URL environment variable not set.")
+    return psycopg.connect(database_url, row_factory=dict_row)
 
 
 def init_db():
     conn = get_connection()
-    conn.executescript("""
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS companies (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
             name            TEXT NOT NULL,
             careers_url     TEXT,
             ats             TEXT NOT NULL,
             ats_identifier  TEXT,
-            active          INTEGER NOT NULL DEFAULT 1
-        );
-
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_name ON companies(name);
-
+            active          BOOLEAN NOT NULL DEFAULT TRUE
+        )
+    """)
+    conn.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_name ON companies(name)
+    """)
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
-            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            id                 INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
             company_id         INTEGER NOT NULL REFERENCES companies(id),
             external_id        TEXT NOT NULL,
             title              TEXT NOT NULL,
@@ -36,23 +39,25 @@ def init_db():
             status             TEXT NOT NULL DEFAULT 'open',
             processing_status  TEXT NOT NULL DEFAULT 'new',
             UNIQUE(company_id, external_id)
-        );
-
+        )
+    """)
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS job_extractions (
             job_id            INTEGER PRIMARY KEY REFERENCES jobs(id),
-            skills            TEXT,
+            skills            JSONB,
             experience_level  TEXT,
-            key_requirements  TEXT,
+            key_requirements  JSONB,
             extracted_at      TEXT NOT NULL
-        );
-
+        )
+    """)
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS match_results (
             job_id        INTEGER PRIMARY KEY REFERENCES jobs(id),
-            is_match      INTEGER NOT NULL,
+            is_match      BOOLEAN NOT NULL,
             reasoning     TEXT,
             notified_at   TEXT,
             evaluated_at  TEXT NOT NULL
-        );
+        )
     """)
     conn.commit()
     conn.close()
