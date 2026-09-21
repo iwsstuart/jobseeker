@@ -4,10 +4,13 @@ from filter import run_filter
 from extract import run_extraction
 from match import run_matching
 from notify import run_notify
+from _fix_active import fix_active  # TEMPORARY — see _fix_active.py
 
 if __name__ == "__main__":
     print("=== Seed ===")
     seed()
+    print("\n=== Fix active (temporary) ===")
+    fix_active()
     print("\n=== Fetch ===")
     run_fetch()
     print("\n=== Filter ===")
