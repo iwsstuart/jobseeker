@@ -50,8 +50,9 @@ def migrate(sqlite_path: str):
                     val = Jsonb(json.loads(val))
                 values.append(val)
             placeholders = ", ".join(["%s"] * len(cols))
+            overriding = "OVERRIDING SYSTEM VALUE" if table in IDENTITY_TABLES else ""
             pconn.execute(
-                f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({placeholders})",
+                f"INSERT INTO {table} ({', '.join(cols)}) {overriding} VALUES ({placeholders})",
                 values,
             )
 
