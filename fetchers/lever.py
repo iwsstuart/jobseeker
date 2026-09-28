@@ -3,7 +3,7 @@ import requests
 _BASE = "https://api.lever.co/v0/postings/{slug}"
 
 
-def fetch_jobs(slug: str) -> list[dict]:
+def fetch_jobs(slug: str, detail_limit: int | None = None) -> list[dict]:
     url = _BASE.format(slug=slug)
     resp = requests.get(url, params={"mode": "json"}, timeout=30)
     resp.raise_for_status()

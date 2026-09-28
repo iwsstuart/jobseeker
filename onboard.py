@@ -5,6 +5,7 @@ from fetch import FETCHERS
 
 VALID_ATS = list(FETCHERS.keys())
 CANCEL_WORDS = ("q", "quit", "cancel")
+SAMPLE_SIZE = 5
 
 
 class Cancelled(Exception):
@@ -12,8 +13,11 @@ class Cancelled(Exception):
 
 
 def resolve(ats: str, ats_identifier: str) -> dict:
+    # Only used to confirm this is the right company before adding it —
+    # full job data (with descriptions) is fetched separately by fetch.py
+    # once the company is active, so a sample is enough here.
     try:
-        jobs = FETCHERS[ats](ats_identifier)
+        jobs = FETCHERS[ats](ats_identifier, detail_limit=SAMPLE_SIZE)
     except Exception as e:
         return {"status": "hard_failure", "message": str(e)}
     if not jobs:

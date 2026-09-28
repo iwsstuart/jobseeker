@@ -3,7 +3,7 @@ import requests
 _BASE = "https://{subdomain}.pinpointhq.com/postings.json"
 
 
-def fetch_jobs(subdomain: str) -> list[dict]:
+def fetch_jobs(subdomain: str, detail_limit: int | None = None) -> list[dict]:
     url = _BASE.format(subdomain=subdomain)
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
