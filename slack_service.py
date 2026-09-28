@@ -10,7 +10,7 @@ import requests
 from flask import Flask, request, jsonify
 
 from db import get_connection, init_db
-from onboard import resolve, VALID_ATS
+from onboard import resolve, VALID_ATS, SAMPLE_SIZE
 
 app = Flask(__name__)
 
@@ -52,7 +52,13 @@ def _unauthorized_message():
 # --- Slack API helpers --------------------------------------------------
 
 def slack_post(url: str, payload: dict):
-    requests.post(url, json=payload, timeout=10)
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+    except Exception as e:
+        print(f"  [slack_post] ERROR posting to {url}: {e}")
+        return
+    if resp.text.strip() != "ok":
+        print(f"  [slack_post] non-ok response ({resp.status_code}) from {url}: {resp.text[:500]}")
 
 
 def views_open(trigger_id: str, view: dict):
@@ -141,49 +147,51 @@ def toggle_message() -> dict:
 # --- Async resolver worker -----------------------------------------------
 
 def run_resolver_check(response_url: str, name: str, careers_url: str, ats: str, ats_identifier: str):
+    print(f"  [resolver] checking {ats}:{ats_identifier} for '{name}'")
     try:
         result = resolve(ats, ats_identifier)
-    except Exception as e:
-        slack_post(response_url, {"replace_original": True, "text": f"Unexpected error checking slug: {e}"})
-        return
+        print(f"  [resolver] result status={result['status']}")
 
-    if result["status"] == "success":
-        jobs = result["jobs"]
-        pending = json.dumps(
-            {"name": name, "careers_url": careers_url, "ats": ats, "ats_identifier": ats_identifier}
-        )
-        sample = "\n".join(f"- {j['title']}" for j in jobs[:5])
-        text = f"Found {len(jobs)} job(s) on {ats} board '{ats_identifier}'. Sample titles:\n{sample}"
-        slack_post(response_url, {
-            "replace_original": True,
-            "text": text,
-            "blocks": [
-                {"type": "section", "text": {"type": "mrkdwn", "text": text}},
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button", "action_id": "confirm_add_company", "style": "primary",
-                            "text": {"type": "plain_text", "text": "Confirm"}, "value": pending,
-                        },
-                        {
-                            "type": "button", "action_id": "reject_add_company",
-                            "text": {"type": "plain_text", "text": "Reject"}, "value": "reject",
-                        },
-                    ],
-                },
-            ],
-        })
-    elif result["status"] == "zero_results":
-        slack_post(response_url, {
-            "replace_original": True,
-            "text": f"Slug '{ats_identifier}' returned 0 jobs — please confirm this is correct and try again.",
-        })
-    else:
-        slack_post(response_url, {
-            "replace_original": True,
-            "text": f"Slug not found — check for typos. ({result['message']})",
-        })
+        if result["status"] == "success":
+            jobs = result["jobs"]
+            pending = json.dumps(
+                {"name": name, "careers_url": careers_url, "ats": ats, "ats_identifier": ats_identifier}
+            )
+            sample = "\n".join(f"- {j['title']}" for j in jobs[:SAMPLE_SIZE])
+            text = f"Found {len(jobs)} job(s) on {ats} board '{ats_identifier}'. Sample titles:\n{sample}"
+            slack_post(response_url, {
+                "replace_original": True,
+                "text": text,
+                "blocks": [
+                    {"type": "section", "text": {"type": "mrkdwn", "text": text}},
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button", "action_id": "confirm_add_company", "style": "primary",
+                                "text": {"type": "plain_text", "text": "Confirm"}, "value": pending,
+                            },
+                            {
+                                "type": "button", "action_id": "reject_add_company",
+                                "text": {"type": "plain_text", "text": "Reject"}, "value": "reject",
+                            },
+                        ],
+                    },
+                ],
+            })
+        elif result["status"] == "zero_results":
+            slack_post(response_url, {
+                "replace_original": True,
+                "text": f"Slug '{ats_identifier}' returned 0 jobs — please confirm this is correct and try again.",
+            })
+        else:
+            slack_post(response_url, {
+                "replace_original": True,
+                "text": f"Slug not found — check for typos. ({result['message']})",
+            })
+    except Exception as e:
+        print(f"  [resolver] unhandled error: {e}")
+        slack_post(response_url, {"replace_original": True, "text": f"Unexpected error checking slug: {e}"})
 
 
 # --- Routes ----------------------------------------------------------------
@@ -241,6 +249,8 @@ def handle_view_submission(payload):
     ats = values["ats_block"]["ats_select"]["selected_option"]["value"]
     ats_identifier = values["slug_block"]["slug_input"]["value"]
     response_url = json.loads(view.get("private_metadata") or "{}").get("response_url")
+
+    slack_post(response_url, {"text": f"Checking {ats} slug '{ats_identifier}'..."})
 
     threading.Thread(
         target=run_resolver_check, args=(response_url, name, careers_url, ats, ats_identifier), daemon=True

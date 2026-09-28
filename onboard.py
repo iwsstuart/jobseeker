@@ -5,6 +5,7 @@ from fetch import FETCHERS
 
 VALID_ATS = list(FETCHERS.keys())
 CANCEL_WORDS = ("q", "quit", "cancel")
+SAMPLE_SIZE = 5
 
 
 class Cancelled(Exception):
@@ -12,8 +13,11 @@ class Cancelled(Exception):
 
 
 def resolve(ats: str, ats_identifier: str) -> dict:
+    # Only used to confirm this is the right company before adding it —
+    # full job data (with descriptions) is fetched separately by fetch.py
+    # once the company is active, so descriptions aren't needed here at all.
     try:
-        jobs = FETCHERS[ats](ats_identifier)
+        jobs = FETCHERS[ats](ats_identifier, fetch_descriptions=False)
     except Exception as e:
         return {"status": "hard_failure", "message": str(e)}
     if not jobs:
@@ -62,7 +66,7 @@ def add_company(conn):
         if result["status"] == "success":
             jobs = result["jobs"]
             print(f"\n  Found {len(jobs)} job(s) on {ats} board '{ats_identifier}'. Sample titles:")
-            for job in jobs[:5]:
+            for job in jobs[:SAMPLE_SIZE]:
                 print(f"    - {job['title']}")
             if not _confirm("\n  Add this company?"):
                 print("  Aborted — nothing written.")
