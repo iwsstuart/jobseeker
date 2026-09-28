@@ -4,7 +4,7 @@ _LIST = "https://api.rippling.com/platform/api/ats/v1/board/{slug}/jobs"
 _DETAIL = "https://api.rippling.com/platform/api/ats/v1/board/{slug}/jobs/{uuid}"
 
 
-def fetch_jobs(slug: str, detail_limit: int | None = None) -> list[dict]:
+def fetch_jobs(slug: str, fetch_descriptions: bool = True) -> list[dict]:
     listing = requests.get(_LIST.format(slug=slug), timeout=30)
     listing.raise_for_status()
 
@@ -16,13 +16,13 @@ def fetch_jobs(slug: str, detail_limit: int | None = None) -> list[dict]:
         seen.setdefault(job["uuid"], job)
 
     # The list endpoint already has id/title/url; only the description
-    # needs a second, per-job request. detail_limit caps how many of those
-    # we make — count and titles below stay accurate for every job either
-    # way, only raw_description is skipped past the limit.
+    # needs a second, per-job request. fetch_descriptions=False skips those
+    # entirely — count and titles below stay accurate either way, only
+    # raw_description is left unset.
     jobs = []
-    for i, (uuid, job) in enumerate(seen.items()):
+    for uuid, job in seen.items():
         raw_description = None
-        if detail_limit is None or i < detail_limit:
+        if fetch_descriptions:
             detail = requests.get(_DETAIL.format(slug=slug, uuid=uuid), timeout=30)
             detail.raise_for_status()
             raw_description = (detail.json().get("description") or {}).get("company")

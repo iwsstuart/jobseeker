@@ -10,7 +10,7 @@ import requests
 from flask import Flask, request, jsonify
 
 from db import get_connection, init_db
-from onboard import resolve, VALID_ATS
+from onboard import resolve, VALID_ATS, SAMPLE_SIZE
 
 app = Flask(__name__)
 
@@ -157,7 +157,7 @@ def run_resolver_check(response_url: str, name: str, careers_url: str, ats: str,
             pending = json.dumps(
                 {"name": name, "careers_url": careers_url, "ats": ats, "ats_identifier": ats_identifier}
             )
-            sample = "\n".join(f"- {j['title']}" for j in jobs[:5])
+            sample = "\n".join(f"- {j['title']}" for j in jobs[:SAMPLE_SIZE])
             text = f"Found {len(jobs)} job(s) on {ats} board '{ats_identifier}'. Sample titles:\n{sample}"
             slack_post(response_url, {
                 "replace_original": True,
@@ -249,6 +249,8 @@ def handle_view_submission(payload):
     ats = values["ats_block"]["ats_select"]["selected_option"]["value"]
     ats_identifier = values["slug_block"]["slug_input"]["value"]
     response_url = json.loads(view.get("private_metadata") or "{}").get("response_url")
+
+    slack_post(response_url, {"text": f"Checking {ats} slug '{ats_identifier}'..."})
 
     threading.Thread(
         target=run_resolver_check, args=(response_url, name, careers_url, ats, ats_identifier), daemon=True

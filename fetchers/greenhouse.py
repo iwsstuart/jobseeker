@@ -3,7 +3,7 @@ import requests
 _BASE = "https://boards-api.greenhouse.io/v1/boards/{token}/jobs"
 
 
-def fetch_jobs(board_token: str, detail_limit: int | None = None) -> list[dict]:
+def fetch_jobs(board_token: str, fetch_descriptions: bool = True) -> list[dict]:
     url = _BASE.format(token=board_token)
     resp = requests.get(url, params={"content": "true"}, timeout=30)
     resp.raise_for_status()

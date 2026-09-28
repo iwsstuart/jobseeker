@@ -3,7 +3,7 @@ import requests
 _BASE = "https://api.ashbyhq.com/posting-api/job-board/{slug}"
 
 
-def fetch_jobs(company_slug: str, detail_limit: int | None = None) -> list[dict]:
+def fetch_jobs(company_slug: str, fetch_descriptions: bool = True) -> list[dict]:
     url = _BASE.format(slug=company_slug)
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
