@@ -25,7 +25,7 @@ def fetch_jobs(slug: str, fetch_descriptions: bool = True) -> list[dict]:
         if fetch_descriptions:
             detail = requests.get(_DETAIL.format(slug=slug, uuid=uuid), timeout=30)
             detail.raise_for_status()
-            raw_description = (detail.json().get("description") or {}).get("company")
+            raw_description = (detail.json().get("description") or {}).get("role")
         jobs.append({
             "external_id": uuid,
             "title": job["name"],
