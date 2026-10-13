@@ -27,6 +27,15 @@ def init_db():
         CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_name ON companies(name)
     """)
     conn.execute("""
+        CREATE TABLE IF NOT EXISTS filter_rulesets (
+            version           TEXT PRIMARY KEY,
+            exclude_keywords  JSONB NOT NULL,
+            exclude_words     JSONB NOT NULL,
+            allow_terms       JSONB NOT NULL,
+            recorded_at       TEXT NOT NULL
+        )
+    """)
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
             id                 INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
             company_id         INTEGER NOT NULL REFERENCES companies(id),
@@ -38,8 +47,16 @@ def init_db():
             last_seen_at       TEXT NOT NULL,
             status             TEXT NOT NULL DEFAULT 'open',
             processing_status  TEXT NOT NULL DEFAULT 'new',
+            filter_reason           TEXT,
+            filter_ruleset_version  TEXT REFERENCES filter_rulesets(version),
             UNIQUE(company_id, external_id)
         )
+    """)
+    conn.execute("""
+        ALTER TABLE jobs ADD COLUMN IF NOT EXISTS filter_reason TEXT
+    """)
+    conn.execute("""
+        ALTER TABLE jobs ADD COLUMN IF NOT EXISTS filter_ruleset_version TEXT REFERENCES filter_rulesets(version)
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS job_extractions (
