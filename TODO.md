@@ -7,7 +7,7 @@
 - [ ] "No new jobs evaluated today" is ambiguous: `notify.py` sends this same message whether there genuinely were no new postings, or extraction/matching failed for every job (e.g. the 2026-09-21 Anthropic credit exhaustion, where 483 jobs were fetched but 0 were evaluated). Notify needs to distinguish "nothing new" from "processing failed" — e.g. have extract.py/match.py surface failure counts, and have notify.py report something like "N jobs fetched but 0 evaluated — check logs" instead of implying a quiet, uneventful day.
 
 ## Profile tuning (after more data)
-- [ ] Consider tightening profile to exclude customer-facing roles (Solutions Engineer, Technical Support Manager) that are surfacing as borderline matches.
+- [x] Consider tightening profile to exclude customer-facing roles (Solutions Engineer, Technical Support Manager) that are surfacing as borderline matches — addressed by adopting `title_filter.py`'s exclude list in `filter.py`, which already includes `"solutions engineer"` and `"technical support"`.
 
 ## Ideas
 - [ ] Workflow for adding jobs found on LinkedIn: only add if the role can also be found on the company's own jobs page (i.e. it's a real, current posting, not stale/reposted). If the company isn't tracked yet, add the new company first.
